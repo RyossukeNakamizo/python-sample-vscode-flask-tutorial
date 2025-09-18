@@ -1,10 +1,19 @@
+resources:
+  repositories:
+  - repository: self
+    type: git
+    name: RyossukeNakamizo/python-sample-vscode-flask-tutorial
+    ref: refs/heads/main
+
+trigger:
+  branches:
+    include:
+    - main
+
 # Python to Linux Web App on Azure
 # Build your Python project and deploy it to Azure as a Linux Web App.
 # Change python version to one thats appropriate for your application.
 # https://docs.microsoft.com/azure/devops/pipelines/languages/python
-
-trigger:
-- main
 
 variables:
   # Azure Resource Manager connection created during pipeline creation
