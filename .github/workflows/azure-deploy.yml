@@ -1,8 +1,70 @@
-# Temporary workflow file - will be updated
-name: Placeholder Workflow
-on: [push]
+name: Flask App CI/CD to Azure App Service
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  AZURE_WEBAPP_NAME: 'flask-tutorial-app-001'
+  PYTHON_VERSION: '3.11'
+
 jobs:
-  placeholder:
+  build-and-test:
     runs-on: ubuntu-latest
+    
     steps:
-    - run: echo "Setup complete"
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ env.PYTHON_VERSION }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        cache: 'pip'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-cov flake8
+    
+    - name: Test with pytest
+      run: |
+        python -m pytest tests/ --junitxml=test-results.xml --cov=hello_app --cov-report=xml
+      continue-on-error: false
+    
+    - name: Create deployment artifact
+      run: |
+        zip -r flask-app.zip . -x "venv/*" ".git/*" "tests/*" "*.pyc" "__pycache__/*"
+    
+    - name: Upload deployment artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: flask-deployment
+        path: flask-app.zip
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment:
+      name: 'production'
+      url: 'https://flask-tutorial-app-001.azurewebsites.net'
+    
+    steps:
+    - name: Download deployment artifact
+      uses: actions/download-artifact@v3
+      with:
+        name: flask-deployment
+    
+    - name: Extract deployment files
+      run: unzip flask-app.zip
+    
+    - name: Deploy to Azure Web App
+      uses: azure/webapps-deploy@v2
+      with:
+        app-name: ${{ env.AZURE_WEBAPP_NAME }}
+        publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+        package: '.'
