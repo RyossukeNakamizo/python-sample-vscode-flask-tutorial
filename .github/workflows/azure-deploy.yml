@@ -1,0 +1,8 @@
+# Temporary workflow file - will be updated
+name: Placeholder Workflow
+on: [push]
+jobs:
+  placeholder:
+    runs-on: ubuntu-latest
+    steps:
+    - run: echo "Setup complete"
